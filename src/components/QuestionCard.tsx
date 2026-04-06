@@ -9,15 +9,17 @@ import FeedbackPanel from "./FeedbackPanel";
 interface Props {
   word: Word;
   onCorrect: () => void;
+  onWrong: () => void;
 }
 
 type OptionState = "idle" | "correct" | "wrong";
 
-export default function QuestionCard({ word, onCorrect }: Props) {
+export default function QuestionCard({ word, onCorrect, onWrong }: Props) {
   const [options, setOptions] = useState<QuizOption[]>([]);
   const [states, setStates] = useState<OptionState[]>([]);
   const [answered, setAnswered] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
 
   useEffect(() => {
     const opts = shuffle<QuizOption>([
@@ -28,14 +30,14 @@ export default function QuestionCard({ word, onCorrect }: Props) {
     setStates(opts.map(() => "idle"));
     setAnswered(false);
     setShowFeedback(false);
+    setHasFailed(false);
   }, [word]);
 
   function handleSelect(index: number) {
     if (answered) return;
     const chosen = options[index];
-    const newStates: OptionState[] = options.map((o, i) => {
+    const newStates: OptionState[] = options.map((_, i) => {
       if (i === index) return chosen.isCorrect ? "correct" : "wrong";
-      if (o.isCorrect) return chosen.isCorrect ? "idle" : "correct";
       return "idle";
     });
     setStates(newStates);
@@ -43,6 +45,10 @@ export default function QuestionCard({ word, onCorrect }: Props) {
     if (chosen.isCorrect) {
       setTimeout(onCorrect, 600);
     } else {
+      if (!hasFailed) {
+        onWrong();
+        setHasFailed(true);
+      }
       setShowFeedback(true);
     }
   }

@@ -10,3 +10,8 @@ export interface QuizOption {
   text: string;
   isCorrect: boolean;
 }
+
+export interface Progress {
+  seenWords: string[];
+  failedWords: string[];
+}
