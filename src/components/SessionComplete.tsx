@@ -2,6 +2,8 @@ interface Props {
   total: number;
   mode: "normal" | "review";
   failedCount: number;
+  masteredCount: number;
+  totalWords: number;
   onRestart: () => void;
   onStartReview: () => void;
   onClearProgress: () => void;
@@ -11,6 +13,8 @@ export default function SessionComplete({
   total,
   mode,
   failedCount,
+  masteredCount,
+  totalWords,
   onRestart,
   onStartReview,
   onClearProgress,
@@ -21,7 +25,8 @@ export default function SessionComplete({
       <h2 className="text-2xl font-bold text-slate-900 mb-2">
         {mode === "review" ? "Övning klar!" : "Sessionen klar!"}
       </h2>
-      <p className="text-slate-600 mb-6">Du har gått igenom {total} ord.</p>
+      <p className="text-slate-600 mb-2">Du har gått igenom {total} ord i denna session.</p>
+      <p className="text-slate-500 text-sm mb-6">Totalt: {masteredCount} av {totalWords} ord klara</p>
       <div className="flex flex-col gap-3">
         <button
           onClick={onRestart}

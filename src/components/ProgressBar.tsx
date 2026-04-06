@@ -1,9 +1,11 @@
 interface Props {
   current: number;
   total: number;
+  masteredCount: number;
+  totalWords: number;
 }
 
-export default function ProgressBar({ current, total }: Props) {
+export default function ProgressBar({ current, total, masteredCount, totalWords }: Props) {
   const pct = Math.round((current / total) * 100);
   return (
     <div className="w-full">
@@ -16,6 +18,9 @@ export default function ProgressBar({ current, total }: Props) {
           className="h-full bg-blue-500 rounded-full transition-all duration-300"
           style={{ width: `${pct}%` }}
         />
+      </div>
+      <div className="text-xs text-slate-400 mt-1 text-right">
+        Totalt: {masteredCount} av {totalWords} ord klara
       </div>
     </div>
   );

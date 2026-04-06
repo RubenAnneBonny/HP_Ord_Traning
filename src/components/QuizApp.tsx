@@ -120,6 +120,10 @@ export default function QuizApp({ allWords }: Props) {
     startSession(progress, "review");
   }
 
+  function handleQuitSession() {
+    setDone(true);
+  }
+
   function handleClearProgress() {
     const empty: Progress = { seenWords: [], failedWords: [] };
     setProgress(empty);
@@ -176,7 +180,18 @@ export default function QuizApp({ allWords }: Props) {
     <div className="flex flex-col items-center gap-6 w-full max-w-lg">
       {!done && (
         <div className="w-full">
-          <ProgressBar current={index + 1} total={session.length} />
+          <ProgressBar
+            current={index + 1}
+            total={session.length}
+            masteredCount={progress.seenWords.length}
+            totalWords={allWords.length}
+          />
+          <button
+            onClick={handleQuitSession}
+            className="mt-2 text-xs text-slate-400 hover:text-slate-600 underline w-full text-right"
+          >
+            Avsluta session
+          </button>
         </div>
       )}
       {done ? (
@@ -184,6 +199,8 @@ export default function QuizApp({ allWords }: Props) {
           total={session.length}
           mode={mode}
           failedCount={progress.failedWords.length}
+          masteredCount={progress.seenWords.length}
+          totalWords={allWords.length}
           onRestart={handleNewSession}
           onStartReview={handleStartReview}
           onClearProgress={handleClearProgress}
