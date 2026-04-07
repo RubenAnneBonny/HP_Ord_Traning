@@ -36,6 +36,7 @@ export default function QuizApp({ allWords }: Props) {
   const [allDone, setAllDone] = useState(false);
   const [mode, setMode] = useState<Mode>("normal");
   const [hydrated, setHydrated] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Tracks which words were answered wrong during the current session
   const failedInSessionRef = useRef<Set<string>>(new Set());
@@ -125,9 +126,14 @@ export default function QuizApp({ allWords }: Props) {
   }
 
   function handleClearProgress() {
+    setShowClearConfirm(true);
+  }
+
+  function handleClearProgressConfirmed() {
     const empty: Progress = { seenWords: [], failedWords: [] };
     setProgress(empty);
     saveProgress(empty);
+    setShowClearConfirm(false);
     startSession(empty, "normal");
   }
 
@@ -140,79 +146,110 @@ export default function QuizApp({ allWords }: Props) {
 
   if (!hydrated) return null;
 
-  if (allDone) {
-    return (
-      <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-lg text-center">
-        <div className="text-5xl mb-4">✨</div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Alla ord avklarade!</h2>
+  const confirmModal = showClearConfirm && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm text-center">
+        <h2 className="text-xl font-bold text-slate-900 mb-3">Rensa all framsteg?</h2>
         <p className="text-slate-600 mb-6">
-          Du har övat alla {allWords.length} ord i listan.
-          {progress.failedWords.length > 0 &&
-            ` ${progress.failedWords.length} ord behöver mer övning.`}
+          All din framsteg — inklusive inlärda och misslyckade ord — kommer att raderas permanent.
         </p>
-        <div className="flex flex-col gap-3">
-          {progress.failedWords.length > 0 && (
-            <button
-              onClick={handleStartReview}
-              className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors"
-            >
-              Öva misslyckade ord ({progress.failedWords.length})
-            </button>
-          )}
+        <div className="flex gap-3 justify-center">
           <button
-            onClick={handleRestartFromScratch}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors"
+            onClick={() => setShowClearConfirm(false)}
+            className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-colors"
           >
-            Börja om från början
+            Avbryt
           </button>
           <button
-            onClick={handleClearProgress}
-            className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-colors"
+            onClick={handleClearProgressConfirmed}
+            className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors"
           >
-            Rensa all framsteg
+            Rensa
           </button>
         </div>
       </div>
+    </div>
+  );
+
+  if (allDone) {
+    return (
+      <>
+        {confirmModal}
+        <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-lg text-center">
+          <div className="text-5xl mb-4">✨</div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Alla ord avklarade!</h2>
+          <p className="text-slate-600 mb-6">
+            Du har övat alla {allWords.length} ord i listan.
+            {progress.failedWords.length > 0 &&
+              ` ${progress.failedWords.length} ord behöver mer övning.`}
+          </p>
+          <div className="flex flex-col gap-3">
+            {progress.failedWords.length > 0 && (
+              <button
+                onClick={handleStartReview}
+                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors"
+              >
+                Öva misslyckade ord ({progress.failedWords.length})
+              </button>
+            )}
+            <button
+              onClick={handleRestartFromScratch}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors"
+            >
+              Börja om från början
+            </button>
+            <button
+              onClick={handleClearProgress}
+              className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold transition-colors"
+            >
+              Rensa all framsteg
+            </button>
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-lg">
-      {!done && (
-        <div className="w-full">
-          <ProgressBar
-            current={index + 1}
+    <>
+      {confirmModal}
+      <div className="flex flex-col items-center gap-6 w-full max-w-lg">
+        {!done && (
+          <div className="w-full">
+            <ProgressBar
+              current={index + 1}
+              total={session.length}
+              masteredCount={progress.seenWords.length}
+              totalWords={allWords.length}
+            />
+            <button
+              onClick={handleQuitSession}
+              className="mt-2 text-xs text-slate-400 hover:text-slate-600 underline w-full text-right"
+            >
+              Avsluta session
+            </button>
+          </div>
+        )}
+        {done ? (
+          <SessionComplete
             total={session.length}
+            mode={mode}
+            failedCount={progress.failedWords.length}
             masteredCount={progress.seenWords.length}
             totalWords={allWords.length}
+            onRestart={handleNewSession}
+            onStartReview={handleStartReview}
+            onClearProgress={handleClearProgress}
           />
-          <button
-            onClick={handleQuitSession}
-            className="mt-2 text-xs text-slate-400 hover:text-slate-600 underline w-full text-right"
-          >
-            Avsluta session
-          </button>
-        </div>
-      )}
-      {done ? (
-        <SessionComplete
-          total={session.length}
-          mode={mode}
-          failedCount={progress.failedWords.length}
-          masteredCount={progress.seenWords.length}
-          totalWords={allWords.length}
-          onRestart={handleNewSession}
-          onStartReview={handleStartReview}
-          onClearProgress={handleClearProgress}
-        />
-      ) : (
-        <QuestionCard
-          key={session[index].word}
-          word={session[index]}
-          onCorrect={handleCorrect}
-          onWrong={handleWrong}
-        />
-      )}
-    </div>
+        ) : (
+          <QuestionCard
+            key={session[index].word}
+            word={session[index]}
+            onCorrect={handleCorrect}
+            onWrong={handleWrong}
+          />
+        )}
+      </div>
+    </>
   );
 }
