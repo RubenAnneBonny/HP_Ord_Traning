@@ -14,14 +14,19 @@ interface Props {
 const SESSION_SIZE = 20;
 const STORAGE_KEY = "hp-ord-progress";
 
-type Mode = "normal" | "review";
+type Mode = "normal" | "review" | "saved";
 
 function loadProgress(): Progress {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Progress;
+    if (raw) {
+      const p = JSON.parse(raw) as Progress;
+      // Backwards compatibility: old saves won't have savedWords
+      if (!p.savedWords) p.savedWords = [];
+      return p;
+    }
   } catch {}
-  return { seenWords: [], failedWords: [] };
+  return { seenWords: [], failedWords: [], savedWords: [] };
 }
 
 function saveProgress(p: Progress): void {
@@ -29,7 +34,7 @@ function saveProgress(p: Progress): void {
 }
 
 export default function QuizApp({ allWords }: Props) {
-  const [progress, setProgress] = useState<Progress>({ seenWords: [], failedWords: [] });
+  const [progress, setProgress] = useState<Progress>({ seenWords: [], failedWords: [], savedWords: [] });
   const [session, setSession] = useState<Word[]>([]);
   const [index, setIndex] = useState(0);
   const [done, setDone] = useState(false);
@@ -53,9 +58,13 @@ export default function QuizApp({ allWords }: Props) {
       }
       setSession(pickSession(unseen, Math.min(SESSION_SIZE, unseen.length)));
       setAllDone(false);
-    } else {
+    } else if (m === "review") {
       const failed = allWords.filter((w) => p.failedWords.includes(w.word));
       setSession(pickSession(failed, Math.min(SESSION_SIZE, failed.length)));
+      setAllDone(false);
+    } else {
+      const saved = allWords.filter((w) => p.savedWords.includes(w.word));
+      setSession(pickSession(saved, Math.min(SESSION_SIZE, saved.length)));
       setAllDone(false);
     }
     setIndex(0);
@@ -81,12 +90,10 @@ export default function QuizApp({ allWords }: Props) {
 
     if (mode === "review") {
       if (failedInSessionRef.current.has(wordStr)) {
-        // Word was failed during this review session — keep it in failedWords
         if (!newProgress.failedWords.includes(wordStr)) {
           newProgress.failedWords = [...newProgress.failedWords, wordStr];
         }
       } else {
-        // Answered correctly on first try — remove from failedWords
         newProgress.failedWords = newProgress.failedWords.filter((w) => w !== wordStr);
       }
     }
@@ -113,12 +120,29 @@ export default function QuizApp({ allWords }: Props) {
     saveProgress(newProgress);
   }, [index, session, progress]);
 
+  const handleToggleSave = useCallback(() => {
+    const wordStr = session[index].word;
+    const isSaved = progress.savedWords.includes(wordStr);
+    const newProgress: Progress = {
+      ...progress,
+      savedWords: isSaved
+        ? progress.savedWords.filter((w) => w !== wordStr)
+        : [...progress.savedWords, wordStr],
+    };
+    setProgress(newProgress);
+    saveProgress(newProgress);
+  }, [index, session, progress]);
+
   function handleNewSession() {
     startSession(progress, "normal");
   }
 
   function handleStartReview() {
     startSession(progress, "review");
+  }
+
+  function handleStartSaved() {
+    startSession(progress, "saved");
   }
 
   function handleQuitSession() {
@@ -130,7 +154,7 @@ export default function QuizApp({ allWords }: Props) {
   }
 
   function handleClearProgressConfirmed() {
-    const empty: Progress = { seenWords: [], failedWords: [] };
+    const empty: Progress = { seenWords: [], failedWords: [], savedWords: progress.savedWords };
     setProgress(empty);
     saveProgress(empty);
     setShowClearConfirm(false);
@@ -151,7 +175,7 @@ export default function QuizApp({ allWords }: Props) {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm text-center">
         <h2 className="text-xl font-bold text-slate-900 mb-3">Rensa all framsteg?</h2>
         <p className="text-slate-600 mb-6">
-          All din framsteg — inklusive inlärda och misslyckade ord — kommer att raderas permanent.
+          All din framsteg — inklusive inlärda och misslyckade ord — kommer att raderas permanent. Sparade ord behålls.
         </p>
         <div className="flex gap-3 justify-center">
           <button
@@ -190,6 +214,14 @@ export default function QuizApp({ allWords }: Props) {
                 className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors"
               >
                 Öva misslyckade ord ({progress.failedWords.length})
+              </button>
+            )}
+            {progress.savedWords.length > 0 && (
+              <button
+                onClick={handleStartSaved}
+                className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-white rounded-xl font-semibold transition-colors"
+              >
+                Öva sparade ord ({progress.savedWords.length})
               </button>
             )}
             <button
@@ -235,16 +267,20 @@ export default function QuizApp({ allWords }: Props) {
             total={session.length}
             mode={mode}
             failedCount={progress.failedWords.length}
+            savedCount={progress.savedWords.length}
             masteredCount={progress.seenWords.length}
             totalWords={allWords.length}
             onRestart={handleNewSession}
             onStartReview={handleStartReview}
+            onStartSaved={handleStartSaved}
             onClearProgress={handleClearProgress}
           />
         ) : (
           <QuestionCard
             key={session[index].word}
             word={session[index]}
+            isSaved={progress.savedWords.includes(session[index].word)}
+            onToggleSave={handleToggleSave}
             onCorrect={handleCorrect}
             onWrong={handleWrong}
           />

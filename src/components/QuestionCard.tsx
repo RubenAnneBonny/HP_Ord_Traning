@@ -8,13 +8,15 @@ import FeedbackPanel from "./FeedbackPanel";
 
 interface Props {
   word: Word;
+  isSaved: boolean;
+  onToggleSave: () => void;
   onCorrect: () => void;
   onWrong: () => void;
 }
 
 type OptionState = "idle" | "correct" | "wrong";
 
-export default function QuestionCard({ word, onCorrect, onWrong }: Props) {
+export default function QuestionCard({ word, isSaved, onToggleSave, onCorrect, onWrong }: Props) {
   const [options, setOptions] = useState<QuizOption[]>([]);
   const [states, setStates] = useState<OptionState[]>([]);
   const [answered, setAnswered] = useState(false);
@@ -61,8 +63,20 @@ export default function QuestionCard({ word, onCorrect, onWrong }: Props) {
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-6 w-full max-w-lg">
-      <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">{word.pos}</p>
-      <h2 className="text-3xl font-bold text-slate-900 mb-6">{word.word}</h2>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">{word.pos}</p>
+          <h2 className="text-3xl font-bold text-slate-900">{word.word}</h2>
+        </div>
+        <button
+          onClick={onToggleSave}
+          title={isSaved ? "Ta bort från sparade" : "Spara ord"}
+          className="text-2xl leading-none mt-1 transition-colors"
+          style={{ color: isSaved ? "#f59e0b" : "#cbd5e1" }}
+        >
+          {isSaved ? "★" : "☆"}
+        </button>
+      </div>
       <p className="text-sm text-slate-500 mb-3">Vad betyder ordet?</p>
       <div className="flex flex-col gap-2">
         {options.map((opt, i) => (

@@ -14,4 +14,5 @@ export interface QuizOption {
 export interface Progress {
   seenWords: string[];
   failedWords: string[];
+  savedWords: string[];
 }
