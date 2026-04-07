@@ -42,12 +42,14 @@ export default function QuizApp({ allWords }: Props) {
   const [mode, setMode] = useState<Mode>("normal");
   const [hydrated, setHydrated] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [completedInSession, setCompletedInSession] = useState(0);
 
   // Tracks which words were answered wrong during the current session
   const failedInSessionRef = useRef<Set<string>>(new Set());
 
   function startSession(p: Progress, m: Mode) {
     failedInSessionRef.current = new Set();
+    setCompletedInSession(0);
     if (m === "normal") {
       const unseen = allWords.filter((w) => !p.seenWords.includes(w.word));
       if (unseen.length === 0) {
@@ -102,6 +104,7 @@ export default function QuizApp({ allWords }: Props) {
     saveProgress(newProgress);
 
     if (index + 1 >= session.length) {
+      setCompletedInSession(session.length);
       setDone(true);
     } else {
       setIndex((i) => i + 1);
@@ -146,6 +149,7 @@ export default function QuizApp({ allWords }: Props) {
   }
 
   function handleQuitSession() {
+    setCompletedInSession(index);
     setDone(true);
   }
 
@@ -264,7 +268,7 @@ export default function QuizApp({ allWords }: Props) {
         )}
         {done ? (
           <SessionComplete
-            total={session.length}
+            total={completedInSession}
             mode={mode}
             failedCount={progress.failedWords.length}
             savedCount={progress.savedWords.length}
